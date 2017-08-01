@@ -1,0 +1,288 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Biomes</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes"> <!-- Fullscreen Landscape on iOS -->
+
+        <meta name="author"              content="Marpi">
+        <meta name="description"         content="Procedurally generated WebGL Biomes">
+        <meta property="og:title"        content="Biomes">
+        <meta property="og:description"  content="Procedurally generated WebGL Biomes">
+        <meta property="og:url"          content="https://demo.marpi.pl/biomes/">
+        <meta property="og:site_name"    content="Biomes">
+        <meta property="og:type"         content="website">
+        <meta name="twitter:card"        content="summary_large_image">
+        <meta name="twitter:url"         content="https://demo.marpi.pl/biomes">
+        <meta name="twitter:title"       content="Biomes">
+        <meta property="og:image"        content="https://demo.marpi.pl/biomes/image.jpg">
+        <meta name="twitter:image"       content="https://demo.marpi.pl/biomes/image.jpg">
+
+        <style>
+            #main {
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 0;
+            }
+        </style>
+    </head>
+    <body>
+
+        <script src="https://demo.marpi.pl/_/scripts/demo-ui.js"></script>
+        <script type="text/javascript">
+            MarpiDemoUI.init("biomes");
+        </script>
+
+        <div id="main"></div>
+        <div id="gui-container" style="position:absolute;right:0;top:50px;"></div>
+
+        <script src='isMobile.js'></script>
+        <script>
+            if (isMobile.android.device) {
+                document.body.style.background = "url(image.jpg) no-repeat center center fixed"
+                document.body.style.backgroundSize = "cover";
+                document.getElementById("main").style.display = "none";
+
+                var toInsert = document.createElement("div");
+                toInsert.innerHTML = "<b>Please try on your desktop computer</b>";
+                toInsert.style.fontFamily = "Fabrik,sans-serif"
+                toInsert.style.color = "#fff";
+                toInsert.style.position = "absolute";
+                toInsert.style.top = "50%";
+                toInsert.style.textAlign = "center";
+                toInsert.style.width = "100%";
+                document.body.appendChild(toInsert);
+            }
+        </script>
+
+        <script src="echarts.min.js"></script>
+        <script src="echarts-gl.min.js"></script>
+        <script src="dat.gui.min.js"></script>
+        <script src="canyon.hdr.js"></script>
+        <script src='mapbox-gl.js'></script>
+        <script src='SimplexNoise.js'></script>
+        <link href='mapbox-gl.css' rel='stylesheet' />
+
+        <script>
+
+            var simplex = new SimplexNoise();
+
+            var myChart = echarts.init(document.getElementById("main"));
+            mapboxgl.accessToken = 'pk.eyJ1IjoicGlzc2FuZyIsImEiOiJjaXBnaGYxcW8wMDFodWNtNDc4NzdqMWR2In0.4XUWeduDltiCbsIiS-U8Lg';
+
+            window.onresize = myChart.resize;
+
+            var UPDATE_DURATION = 1000;
+
+            function initVisualizer() {
+
+                var config = {
+                    numWaves: 2,
+                    randomize: randomize,
+                    color: "#330000",
+                    size: 150
+                };
+
+                if (isMobile.any) {
+                    gui = new dat.GUI({autoPlace: false});
+                    var customContainer = document.getElementById('gui-container');
+                    customContainer.appendChild(gui.domElement);
+                    gui.close();
+                } else {
+                    gui = new dat.GUI();
+                }
+                //gui.add(config, "numWaves", 1, 3).name("Waves number").onChange(update).listen();
+                for (var i = 0; i < 2; i++) {
+                    config["wave" + i + "axis" + "x"] = Math.random();
+                    config["wave" + i + "axis" + "y"] = Math.random();
+                    config["wave" + i + "rounding"] = Math.random();
+                    config["wave" + i + "square"] = Math.random();
+                    gui.add(config, "wave" + i + "axis" + "x", 0, 1).name("Wave " + (i + 1) + " width").onChange(update).listen();
+                    gui.add(config, "wave" + i + "axis" + "y", 0, 1).name("Wave " + (i + 1) + " depth").onChange(update).listen();
+                    gui.add(config, "wave" + i + "rounding", 0, 1).name("Wave " + (i + 1) + " grow").onChange(update).listen();
+                    gui.add(config, "wave" + i + "square", 0, 1).name("Wave " + (i + 1) + " square").onChange(update).listen();
+                }
+                gui.addColor(config, 'color').onChange(update);
+                gui.add(config, "randomize").name("Randomize")
+
+                function randomize() {
+                    //config.numWaves = Math.floor(Math.random() * 3) + 1;
+                    for (var i = 0; i < 2; i++) {
+                        config["wave" + i + "axis" + "x"] = Math.random();
+                        config["wave" + i + "axis" + "y"] = Math.random();
+                        config["wave" + i + "rounding"] = Math.random();
+                        config["wave" + i + "square"] = Math.random();
+                    }
+                    update();
+                }
+
+                function update() {
+                    var item = [];
+                    var dataProvider = [];
+
+                    var mod = .1
+
+                    //config.numWaves = Math.round(config.numWaves)
+
+                    //var occurenceR = Math.random() * .02
+                    //var r = 0//Math.random()
+                    for (var s = 0; s < config.size * config.size; s++) {
+                        var x = s % config.size;
+                        var y = Math.floor(s / config.size);
+
+                        //if (Math.random() < occurenceR)
+                        //    r = Math.random()
+
+                        var output = 0;
+                        for (var i = 0; i < config.numWaves; i++) {
+                            var n = simplex.noise2D(i * 213 + (-50 + x) * mod * (1 - config["wave" + i + "axis" + "x"]) * .5, i * 3124 + (-50 + y) * mod * (1 - config["wave" + i + "axis" + "y"]) * .5)
+                            n = Math.pow(n, 1.95 - 1.9 * config["wave" + i + "rounding"])
+                            var square = Math.floor((1.1 - config["wave" + i + "square"]) * 20)
+                            n = Math.round(n * square) / square
+                            //output*=n
+                            if (output < n)
+                                output = n;
+                        }
+                        dataProvider.push([x, y, (output + .1) * 2]);
+                    }
+
+                    var color = config.color + ""
+                    color = "#" + color.substr(1, 6)
+                    //console.log(color)
+
+                    myChart.setOption({
+                        visualMap: {
+                            inRange: {
+                                barSize: 100 / config.size,
+                                color: ['#000', color, '#fff'],
+                            }
+                        },
+                        series: [{
+                                data: dataProvider
+                            }]});
+                    //setTimeout(update, UPDATE_DURATION);
+                }
+
+                update();
+            }
+            var focalRange=40
+            var blurRadius=4
+            
+            if(isMobile.any){
+                focalRange=60;
+                blurRadius=3;
+            }
+
+            myChart.setOption({
+                tooltip: {},
+                visualMap: {
+                    show: false,
+                    min: 0.1,
+                    max: 2.5,
+                    inRange: {
+                        color: ['#000', '#300', '#fff']
+                    }
+                },
+                xAxis3D: {
+                    type: 'value'
+                },
+                yAxis3D: {
+                    type: 'value'
+                },
+                zAxis3D: {
+                    type: 'value',
+                    min: -6,
+                    max: 6
+                },
+                grid3D: {
+                    show: false,
+                    environment: '#000',
+                    viewControl: {
+                        distance: 100,
+                        maxDistance: 150,
+                        minDistance: 50,
+                        alpha: 38,
+                        beta: 220,
+                        minAlpha: 10,
+                        //maxBeta: 360,
+                    },
+                    postEffect: {
+                        enable: true,
+                        SSAO: {
+                            enable: true,
+                            intensity: 1.3,
+                            radius: 5
+                        },
+                        screenSpaceReflection: {
+                            enable: true
+                        },
+                        depthOfField: {
+                            enable: true,
+                            blurRadius: blurRadius,
+                            focalRange: focalRange,
+                            focalDistance: 70
+                        }
+                    },
+                    light: {
+                        main: {
+                            intensity: 1,
+                            shadow: true,
+                            shadowQuality: 'high',
+                            alpha: 30
+                        },
+                        ambient: {
+                            intensity: 0
+                        },
+                        ambientCubemap: {
+                            texture: 'data-1491838644249-ry33I7YTe.hdr',
+                            exposure: 2,
+                            diffuseIntensity: 1,
+                            specularIntensity: 1
+                        }
+                    }
+                },
+                series: [{
+                        type: 'bar3D',
+                        silent: true,
+                        shading: 'realistic',
+                        instancing: true,
+                        barSize: 1 / 1.5,
+                        data: [],
+                        lineStyle: {
+                            width: 4
+                        },
+                        itemStyle: {
+                            color: "#fff"
+                        },
+                        animation: false,
+                        animationDurationUpdate: UPDATE_DURATION
+                    }]
+            })
+
+            if (!isMobile.android.device)
+                initVisualizer()
+
+
+        </script>
+
+        <script>
+                        (function (i, s, o, g, r, a, m) {
+                            i['GoogleAnalyticsObject'] = r;
+                            i[r] = i[r] || function () {
+                                (i[r].q = i[r].q || []).push(arguments)
+                            }, i[r].l = 1 * new Date();
+                            a = s.createElement(o),
+                                    m = s.getElementsByTagName(o)[0];
+                            a.async = 1;
+                            a.src = g;
+                            m.parentNode.insertBefore(a, m)
+                        })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+            ga('create', 'UA-873340-30', 'auto');
+            ga('send', 'pageview');
+
+        </script>
+    </body>
+</html>
