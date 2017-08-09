@@ -63,6 +63,9 @@
         <script src="canyon.hdr.js"></script>
         <script src='mapbox-gl.js'></script>
         <script src='SimplexNoise.js'></script>
+        <script src="exportGL2PLY.js"></script>
+        <script src="exportGL2OBJ.js"></script>
+        <script src="download.js"></script>
         <link href='mapbox-gl.css' rel='stylesheet' />
 
         <script>
@@ -81,9 +84,30 @@
                 var config = {
                     numWaves: 2,
                     randomize: randomize,
-                    color: "#330000",
+                    downloadObj: downloadObj,
+                    downloadPly: downloadPly,
+                    color: "#" + Math.random().toString(16).slice(2, 8),
+                    colorStart: "#" + Math.random().toString(16).slice(2, 8),
+                    colorEnd: "#" + Math.random().toString(16).slice(2, 8),
+                    floor: Math.random(),
                     size: 150
                 };
+
+                function downloadObj() {
+                    var res = echarts.exportGL2OBJ(myChart, {
+                        mainType: 'grid3D',
+                        index: 0
+                    });
+                    download(res.obj, 'biome.obj', 'text/plain');
+                }
+
+                function downloadPly() {
+                    var res = echarts.exportGL2PLY(myChart, {
+                        mainType: 'grid3D',
+                        index: 0
+                    });
+                    download(res, 'biome.ply', 'text/plain');
+                }
 
                 if (isMobile.any) {
                     gui = new dat.GUI({autoPlace: false});
@@ -101,11 +125,16 @@
                     config["wave" + i + "square"] = Math.random();
                     gui.add(config, "wave" + i + "axis" + "x", 0, 1).name("Wave " + (i + 1) + " width").onChange(update).listen();
                     gui.add(config, "wave" + i + "axis" + "y", 0, 1).name("Wave " + (i + 1) + " depth").onChange(update).listen();
-                    gui.add(config, "wave" + i + "rounding", 0, 1).name("Wave " + (i + 1) + " grow").onChange(update).listen();
-                    gui.add(config, "wave" + i + "square", 0, 1).name("Wave " + (i + 1) + " square").onChange(update).listen();
+                    //gui.add(config, "wave" + i + "rounding", 0, 1).name("Wave " + (i + 1) + " grow").onChange(update).listen();
+                    //gui.add(config, "wave" + i + "square", 0, 1).name("Wave " + (i + 1) + " square").onChange(update).listen();
                 }
-                gui.addColor(config, 'color').onChange(update);
+                gui.add(config, 'floor', 0, 1).name("Height").listen().onChange(update);
+                gui.addColor(config, 'colorStart').name("Color Top").listen().onChange(update);
+                gui.addColor(config, 'color').name("Color Middle").listen().onChange(update);
+                gui.addColor(config, 'colorEnd').name("Color Bottom").listen().onChange(update);
                 gui.add(config, "randomize").name("Randomize")
+                //gui.add(config, "downloadObj").name("Download OBJ")
+                gui.add(config, "downloadPly").name("Download")
 
                 function randomize() {
                     //config.numWaves = Math.floor(Math.random() * 3) + 1;
@@ -115,6 +144,10 @@
                         config["wave" + i + "rounding"] = Math.random();
                         config["wave" + i + "square"] = Math.random();
                     }
+                    config.floor = Math.random();
+                    config.color = "#" + Math.random().toString(16).slice(2, 8)
+                    config.colorStart = "#" + Math.random().toString(16).slice(2, 8)
+                    config.colorEnd = "#" + Math.random().toString(16).slice(2, 8)
                     update();
                 }
 
@@ -138,9 +171,11 @@
                         var output = 0;
                         for (var i = 0; i < config.numWaves; i++) {
                             var n = simplex.noise2D(i * 213 + (-50 + x) * mod * (1 - config["wave" + i + "axis" + "x"]) * .5, i * 3124 + (-50 + y) * mod * (1 - config["wave" + i + "axis" + "y"]) * .5)
-                            n = Math.pow(n, 1.95 - 1.9 * config["wave" + i + "rounding"])
+                            n += (config["wave" + i + "rounding"] - 1) * .5//Math.pow(n, 1.95 - 1.9 * config["wave" + i + "rounding"])
                             var square = Math.floor((1.1 - config["wave" + i + "square"]) * 20)
-                            n = Math.round(n * square) / square
+                            //n = Math.round(n * square) / square
+                            n += (config.floor - .5) * .8;
+                            //n+=Math.pow(n, 1.95 - 1.9 * config["wave" + i + "square"])
                             //output*=n
                             if (output < n)
                                 output = n;
@@ -150,13 +185,17 @@
 
                     var color = config.color + ""
                     color = "#" + color.substr(1, 6)
+                    var colorStart = config.colorStart + ""
+                    colorStart = "#" + colorStart.substr(1, 6)
+                    var colorEnd = config.colorEnd + ""
+                    colorEnd = "#" + colorEnd.substr(1, 6)
                     //console.log(color)
 
                     myChart.setOption({
                         visualMap: {
                             inRange: {
                                 barSize: 100 / config.size,
-                                color: ['#000', color, '#fff'],
+                                color: [colorEnd, color, colorStart],
                             }
                         },
                         series: [{
@@ -167,12 +206,12 @@
 
                 update();
             }
-            var focalRange=40
-            var blurRadius=4
-            
-            if(isMobile.any){
-                focalRange=60;
-                blurRadius=3;
+            var focalRange = 40
+            var blurRadius = 4
+
+            if (isMobile.any) {
+                focalRange = 60;
+                blurRadius = 3;
             }
 
             myChart.setOption({
