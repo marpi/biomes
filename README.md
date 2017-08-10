@@ -11,3 +11,8 @@ In order to see your [Three.js](http://threejs.org) project on your own computer
 - OSX: In terminal, go to your public/name/ folder and type: php -S 0.0.0.0:8000
 - Linux: In terminal, go to your public/name/ folder and type: python -m SimpleHTTPServer
 - Otherwise, you can try running Chrome with the flags --disable-web-security
+
+Libraries
+-------
+
+[QTEK](https://github.com/pissang/qtek/), [ECharts](https://github.com/ecomfe/echarts), [SimplexNoise.js](https://github.com/josephg/noisejs), [isMobile](https://github.com/kaimallea/isMobile)
