@@ -38,7 +38,7 @@
         <div id="main"></div>
         <div id="gui-container" style="position:absolute;right:0;top:50px;"></div>
 
-        <script src='isMobile.js'></script>
+        <script src='js/isMobile.js'></script>
         <script>
             if (isMobile.android.device) {
                 document.body.style.background = "url(image.jpg) no-repeat center center fixed"
@@ -57,24 +57,21 @@
             }
         </script>
 
-        <script src="echarts.min.js"></script>
-        <script src="echarts-gl.min.js"></script>
-        <script src="dat.gui.min.js"></script>
-        <script src="canyon.hdr.js"></script>
-        <script src='mapbox-gl.js'></script>
-        <script src='SimplexNoise.js'></script>
-        <script src="exportGL2PLY.js"></script>
-        <script src="exportGL2OBJ.js"></script>
-        <script src="download.js"></script>
-        <link href='mapbox-gl.css' rel='stylesheet' />
+        <script src="js/echarts.min.js"></script>
+        <script src="js/echarts-gl.min.js"></script>
+        <script src="js/dat.gui.min.js"></script>
+        <script src="js/canyon.hdr.js"></script>
+        <script src='js/SimplexNoise.js'></script>
+        <script src="js/exportGL2PLY.js"></script>
+        <script src="js/exportGL2OBJ.js"></script>
+        <script src="js/download.js"></script>
 
         <script>
 
             var simplex = new SimplexNoise();
 
             var myChart = echarts.init(document.getElementById("main"));
-            mapboxgl.accessToken = 'pk.eyJ1IjoicGlzc2FuZyIsImEiOiJjaXBnaGYxcW8wMDFodWNtNDc4NzdqMWR2In0.4XUWeduDltiCbsIiS-U8Lg';
-
+            
             window.onresize = myChart.resize;
 
             var UPDATE_DURATION = 1000;
@@ -275,7 +272,7 @@
                             intensity: 0
                         },
                         ambientCubemap: {
-                            texture: 'data-1491838644249-ry33I7YTe.hdr',
+                            texture: 'img/data-1491838644249-ry33I7YTe.hdr',
                             exposure: 2,
                             diffuseIntensity: 1,
                             specularIntensity: 1
